@@ -142,14 +142,14 @@
 			  ...inputs,
 			  max_new_tokens: 512,
 			  do_sample: true,
-			  guidance_scale: 1, // was 3
+			  guidance_scale: 3, // was 3
 			});
 
 			console.log("audio_values: ", audio_values);
 			console.log("audio_values.ort_tensor: ", audio_values.ort_tensor);
 			console.log("audio_values.ort_tensor.cpuData: ", audio_values.ort_tensor.cpuData);
 		
-			let wav = encodeWAV(audio_values.ort_tensor.cpuData,1,32000,1,32);
+			let wav = encodeWAV(audio_values.ort_tensor.cpuData,3,32000,1,32);
 			let wav_blob = new Blob([wav], { type: 'audio/wav' });
 			
 			const audio_el = document.createElement('audio');

@@ -180,7 +180,7 @@
 			downloading_model_el.style.display = 'block';
 			
 			progress_bar_el.value = 0;
-			
+			logOfConsole = [];
 			// Load tokenizer and model
 			const tokenizer = await AutoTokenizer.from_pretrained('Xenova/musicgen-small');
 			const model = await MusicgenForConditionalGeneration.from_pretrained(

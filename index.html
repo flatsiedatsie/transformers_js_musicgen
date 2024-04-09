@@ -16,6 +16,13 @@
 		#progress-bar{
 			display:none;
 		}
+		#progress-bar{
+			width:300px;
+		}
+		#progress-bar:before{
+			content:'Generating audio...';
+			display:block;
+		}
 		#prompt{
 			width:300px;
 			height:100px;
@@ -52,7 +59,6 @@
 		var logOfConsole = [];
 		
 		console.warn = function() {
-			console.log("in console.warn");
 		    logOfConsole.push({method: 'warn', arguments: arguments});
 		    //return _warn.apply(console, arguments);
 			console.log("logOfConsole.length (of 511): ", logOfConsole.length);

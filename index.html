@@ -11,6 +11,8 @@
 			background-color:#85ca85;
 			padding:2rem;
 		}
+		
+		#downloading-model,
 		#progress-bar{
 			display:none;
 		}
@@ -19,6 +21,8 @@
 			height:100px;
 			padding:.5rem;
 		}
+		
+		
 	</style>
   </head>
   <body>
@@ -32,6 +36,7 @@
 	  <textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
 	  <button id="submit-button">MAKE THAT FUNKY MUSIC</button>
 	  
+	  <div id="downloading-model">Downloading AI model...</div>
 	  <progress id="progress-bar" aria-label="Content loading…"></progress>
 	  
 	<script type="module">
@@ -40,6 +45,7 @@
 		import { AutoTokenizer, MusicgenForConditionalGeneration } from './js/transformers.js';
 
 
+		const downloading_model_el = document.getElementById('downloading-model');
 		const progress_bar_el = document.getElementById('progress-bar');
 		
 
@@ -52,6 +58,7 @@
 			console.log("logOfConsole.length (of 511): ", logOfConsole.length);
 			progress_bar_el.value = (1/511) * logOfConsole.length;
 			progress_bar_el.style.display = 'block';
+			downloading_model_el.style.display = 'none';
 		};
 
 
@@ -123,6 +130,7 @@
 		async function make_funky_music(){
 			
 			submit_button.style.display = 'none';
+			downloading_model_el.style.display = 'block';
 			
 			progress_bar_el.value = 0;
 			

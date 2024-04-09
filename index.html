@@ -41,6 +41,11 @@
 	  <p>This is made possible by <a href="https://huggingface.co/docs/transformers.js/index" target="_blank">Transformers.js</a>.</p>
 	  
 	  <textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
+	  
+	  	<div class="flex"><span>Guidance scale</span> 0
+	  		<input id="guidance-scale" type="range" min="0" max="10" step="1" value="3"/> 10
+  		</div>
+	  
 	  <button id="submit-button">MAKE THAT FUNKY MUSIC</button>
 	  
 	  <div id="downloading-model">Downloading AI model...</div>
@@ -54,6 +59,7 @@
 
 		const downloading_model_el = document.getElementById('downloading-model');
 		const progress_bar_el = document.getElementById('progress-bar');
+		const guidance_scale_el = document.getElementById('guidance-scale');
 		
 
 		var logOfConsole = [];
@@ -151,12 +157,15 @@
 			const prompt = document.getElementById('prompt').value; //'80s pop track with bassy drums and synth';
 			const inputs = tokenizer(prompt);
 
+			let guidance_scale = guidance_scale_el.value;
+			if(guidance_scale == 0){guidance_scale = null}
+
 			// Generate audio
 			const audio_values = await model.generate({
 			  ...inputs,
 			  max_new_tokens: 512,
 			  do_sample: true,
-			  guidance_scale: 3, // was 3
+			  guidance_scale: guidance_scale, // was 3
 			});
 
 			console.log("audio_values: ", audio_values);

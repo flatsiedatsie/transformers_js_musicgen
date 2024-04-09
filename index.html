@@ -8,7 +8,8 @@
 	
 	<style>
 		body{
-			background-color:green;
+			background-color:#85ca85;
+			padding:2rem;
 		}
 		#progress-bar{
 			display:none;
@@ -21,7 +22,6 @@
 	</style>
   </head>
   <body>
-	  
 	  
 	  <h1>🎸 🎺 🥁 MusicGen.. running completely in the browser! 🎶 🎵 🎶 </h1>
 	  <p>This AI will generate a 10 second music clip tailored to your wishes. It's 100% privacy friendly, as the AI runs on your own computer, and not 'in the cloud'.</p>
@@ -38,6 +38,21 @@
 		
 		
 		import { AutoTokenizer, MusicgenForConditionalGeneration } from './js/transformers.js';
+
+
+		const progress_bar_el = document.getElementById('progress-bar');
+		
+
+		var logOfConsole = [];
+		
+		console.warn = function() {
+			console.log("in console.warn");
+		    logOfConsole.push({method: 'warn', arguments: arguments});
+		    //return _warn.apply(console, arguments);
+			console.log("logOfConsole.length (of 511): ", logOfConsole.length);
+			progress_bar_el.value = (1/511) * logOfConsole.length;
+			progress_bar_el.style.display = 'block';
+		};
 
 
 		function minFramesForTargetMS(targetDuration, frameSamples, sr = 16e3) {
@@ -108,7 +123,8 @@
 		async function make_funky_music(){
 			
 			submit_button.style.display = 'none';
-			document.getElementById('progress-bar').style.display = 'block';
+			
+			progress_bar_el.value = 0;
 			
 			// Load tokenizer and model
 			const tokenizer = await AutoTokenizer.from_pretrained('Xenova/musicgen-small');
@@ -126,14 +142,14 @@
 			  ...inputs,
 			  max_new_tokens: 512,
 			  do_sample: true,
-			  guidance_scale: 3, // was 3
+			  guidance_scale: 1, // was 3
 			});
 
 			console.log("audio_values: ", audio_values);
 			console.log("audio_values.ort_tensor: ", audio_values.ort_tensor);
 			console.log("audio_values.ort_tensor.cpuData: ", audio_values.ort_tensor.cpuData);
 		
-			let wav = encodeWAV(audio_values.ort_tensor.cpuData,3,32000);
+			let wav = encodeWAV(audio_values.ort_tensor.cpuData,1,32000,1,32);
 			let wav_blob = new Blob([wav], { type: 'audio/wav' });
 			
 			const audio_el = document.createElement('audio');
@@ -141,12 +157,12 @@
 			audio_el.src = window.URL.createObjectURL(wav_blob);
 			document.body.appendChild(audio_el);
 			submit_button.style.display = 'block';
-			document.getElementById('progress-bar').style.display = 'none';
+			progress_bar_el.style.display = 'none';
 			
 			
 			
 			// Stereo
-			var channels = 2;
+			var channels = 1;
 
 			// Create an empty two second stereo buffer at the
 			// sample rate of the AudioContext

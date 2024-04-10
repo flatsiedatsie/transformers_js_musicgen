@@ -10,6 +10,16 @@
 		body{
 			background-color:#85ca85;
 			padding:2rem;
+			display:flex;
+			align-items:center;
+			justify-content:center;
+		}
+		
+		
+		#centered{
+			max-height:100vh;
+			overflow:auto;
+			max-width:600px;
 		}
 		
 		#downloading-model,
@@ -60,29 +70,35 @@
   </head>
   <body>
 	  
-	  <h1>🎸 🎺 🥁 MusicGen.. running completely in the browser! 🎶 🎵 🎶 </h1>
-	  <p>This AI will generate a 30 second music clip tailored to your wishes. It's 100% privacy friendly, as the AI runs on your own computer, and not 'in the cloud'.</p>
-	  <p>After the AI model is downloaded to your computer, which may take a few minutes, generating the audio can easily take another few minutes. In other words: please be patient.<p>
+	<div id="centered">
+  	  <h1>🎸 🎺 🥁 MusicGen 🎶 🎵 🎶 </h1>
+	  <h3>.. running completely in the browser! </h3>
+  	  <p>This AI will generate a 30 second music clip tailored to your wishes. It's 100% privacy friendly, as the AI runs on your own computer, and not 'in the cloud'.</p>
+  	  <p>After the AI model is downloaded to your computer, which may take a few minutes, generating the audio can easily take another few minutes. In other words: please be patient.<p>
 	  
-	  <p>This is made possible by <a href="https://huggingface.co/docs/transformers.js/index" target="_blank">Transformers.js</a>.</p>
+  	  <p>You can find this demo <a href="https://github.com/flatsiedatsie/transformers_js_musicgen">on Github</a>. This is made possible by <a href="https://huggingface.co/docs/transformers.js/index" target="_blank">Transformers.js</a>.</p>
 	  
-	  <textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
+  	  <textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
 	  
+	  <div class="flex"><span>Max New Tokens</span>
+    	  <input id="new-tokens" type="number" value="512"/>
+  	  </div>
+  	  	
+	  <div class="flex"><span>Do Sample</span>
+  	  	  <input id="do-sample" type="checkbox" checked/>
+      </div>
+  	  	
+	  <div class="flex"><span>Guidance scale</span> 0
+  	  	  <input id="guidance-scale" type="range" min="0" max="20" step="1" value="3"/> 20
+      </div>
 	  
-  		<div class="flex"><span>Max New Tokens</span>
-  		<input id="new-tokens" type="number" value="512"/>
-		</div>
-	  	<div class="flex"><span>Do Sample</span>
-	  		<input id="do-sample" type="checkbox" checked/>
-  		</div>
-	  	<div class="flex"><span>Guidance scale</span> 0
-	  		<input id="guidance-scale" type="range" min="0" max="20" step="1" value="3"/> 20
-  		</div>
+  	  <button id="submit-button">MAKE THAT FUNKY MUSIC</button>
 	  
-	  <button id="submit-button">MAKE THAT FUNKY MUSIC</button>
+  	  <div id="downloading-model">Downloading AI model...</div>
+  	  <progress id="progress-bar" aria-label="Content loading…"></progress>
 	  
-	  <div id="downloading-model">Downloading AI model...</div>
-	  <progress id="progress-bar" aria-label="Content loading…"></progress>
+  	  <div id="output-container"></div>
+    </div>
 	  
 	<script type="module">
 		
@@ -95,20 +111,23 @@
 		const new_tokens_el = document.getElementById('new-tokens');
 		const do_sample_el = document.getElementById('do-sample');
 		const guidance_scale_el = document.getElementById('guidance-scale');
-		
+		const output_container_el = document.getElementById('output-container');
 
-		var logOfConsole = [];
 		
+		
+		// Hacky way of getting progress updates
+		var logOfConsole = [];
 		console.warn = function() {
 		    logOfConsole.push({method: 'warn', arguments: arguments});
 		    //return _warn.apply(console, arguments);
-			console.log("logOfConsole.length (of 511): ", logOfConsole.length);
-			progress_bar_el.value = (1/1510) * logOfConsole.length;
+			console.log("logOfConsole.length (of 511): ", logOfConsole.length, arguments);
+			progress_bar_el.value = (1/1510) * logOfConsole.length; // The 1510 hardcoded value is the maximum I've seen. Lowest was 511, It increases with the guidance scale value.
 			progress_bar_el.style.display = 'block';
 			downloading_model_el.style.display = 'none';
 		};
 
 
+		// Library for turning audio data array into a WAV file
 		function minFramesForTargetMS(targetDuration, frameSamples, sr = 16e3) {
 		  return Math.ceil(targetDuration * sr / 1e3 / frameSamples);
 		}
@@ -168,12 +187,16 @@
 		
 		
 		
+		// Submit button
 		const submit_button = document.getElementById('submit-button');
 		submit_button.addEventListener('click', () => {
 			console.log("making that funky music");
 			make_funky_music();
 		});
 		
+		
+		
+		// Main function that starts the (download and) music generation process
 		async function make_funky_music(){
 			
 			submit_button.style.display = 'none';
@@ -181,10 +204,12 @@
 			
 			progress_bar_el.value = 0;
 			logOfConsole = [];
+			
 			// Load tokenizer and model
 			const tokenizer = await AutoTokenizer.from_pretrained('Xenova/musicgen-small');
 			const model = await MusicgenForConditionalGeneration.from_pretrained(
 				//'Xenova/musicgen-small', { dtype: 'fp32' }
+				//'Xenova/musicgen-small', { dtype: 'q8' } // <- in the future this option should be used
 				'Xenova/musicgen-small', { dtype: 'q8' , revision: 'refs/pr/9'}
 			);
 
@@ -204,25 +229,27 @@
 			  ...inputs,
 			  max_new_tokens: new_tokens_el.value,
 			  do_sample: do_sample_el.checked,
-			  guidance_scale: guidance_scale, // was 3
+			  guidance_scale: guidance_scale, // default is 3. Null disables it. Greatly increases memory usage.
 			});
 
 			console.log("audio_values: ", audio_values);
 			console.log("audio_values.ort_tensor: ", audio_values.ort_tensor);
 			console.log("audio_values.ort_tensor.cpuData: ", audio_values.ort_tensor.cpuData);
 		
-			let wav = encodeWAV(audio_values.ort_tensor.cpuData,3,32000,1,32);
+			let wav = encodeWAV(audio_values.ort_tensor.cpuData, 3, 32000, 1, 32); // The MusicGen model outputs at a samplerate of 32000, 1 channel (mono), 32 bit data,
 			let wav_blob = new Blob([wav], { type: 'audio/wav' });
 			
 			const audio_el = document.createElement('audio');
 			audio_el.setAttribute('controls', true);
 			audio_el.src = window.URL.createObjectURL(wav_blob);
-			document.body.appendChild(audio_el);
+			output_container_el.appendChild(audio_el);
 			submit_button.style.display = 'block';
 			progress_bar_el.style.display = 'none';
 			
 			
+			/*
 			
+			// The code below instantly plays the music after it has been created
 			// Stereo
 			var channels = 1;
 
@@ -253,9 +280,10 @@
 
 		  // start the source playing
 		  source.start();
+			*/
 			
 			
-		}
+		} // end of make_funky_music()
 
 		
 		

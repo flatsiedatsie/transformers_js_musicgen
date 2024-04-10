@@ -1,10 +1,10 @@
 Generate completely new music from a text description!
 
-#DEMO
+## DEMO
 Try it here:
 https://flatsiedatsie.github.io/transformers_js_musicgen/
 
-##About
+## About
 This is a small demonstration of running Facebook's MusicGen-Small AI model through Transformers.js. This means it's fully browser based; everything runs on your own computer. This is a complete demo, with all the required files.
 
 More about MusicGen: https://huggingface.co/facebook/musicgen-small
@@ -15,7 +15,7 @@ More about MusicGen: https://huggingface.co/facebook/musicgen-small
 Have a look at this Github thread:
 https://github.com/xenova/transformers.js/issues/688
 
-##Manual update
+## Manual update
 In the `js` folder you'll find a full distribution of an alpha version of Transformers.js 3.0. You will likely wish to generate a newer version of Transformers.js yourself. 
 
 For example, while version 3 is in beta, you could run:

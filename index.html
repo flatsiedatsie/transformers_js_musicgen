@@ -76,7 +76,7 @@
 	  		<input id="do-sample" type="checkbox" checked/>
   		</div>
 	  	<div class="flex"><span>Guidance scale</span> 0
-	  		<input id="guidance-scale" type="range" min="0" max="10" step="1" value="3"/> 10
+	  		<input id="guidance-scale" type="range" min="0" max="20" step="1" value="3"/> 20
   		</div>
 	  
 	  <button id="submit-button">MAKE THAT FUNKY MUSIC</button>
@@ -103,7 +103,7 @@
 		    logOfConsole.push({method: 'warn', arguments: arguments});
 		    //return _warn.apply(console, arguments);
 			console.log("logOfConsole.length (of 511): ", logOfConsole.length);
-			progress_bar_el.value = (1/1024) * logOfConsole.length;
+			progress_bar_el.value = (1/1510) * logOfConsole.length;
 			progress_bar_el.style.display = 'block';
 			downloading_model_el.style.display = 'none';
 		};
@@ -185,7 +185,7 @@
 			const tokenizer = await AutoTokenizer.from_pretrained('Xenova/musicgen-small');
 			const model = await MusicgenForConditionalGeneration.from_pretrained(
 				//'Xenova/musicgen-small', { dtype: 'fp32' }
-				'Xenova/musicgen-small', { dtype: 'q8' }
+				'Xenova/musicgen-small', { dtype: 'q8' , revision: 'refs/pr/9'}
 			);
 
 			// Prepare text input
@@ -194,6 +194,10 @@
 
 			let guidance_scale = guidance_scale_el.value;
 			if(guidance_scale == 0){guidance_scale = null}
+
+			console.log("max new token: ", new_tokens_el.value);
+			console.log("do_sample: ", do_sample_el.checked);
+			console.log("guidance_scale: ", guidance_scale);
 
 			// Generate audio
 			const audio_values = await model.generate({

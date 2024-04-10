@@ -7,19 +7,86 @@
     <title>Musicgen</title>
 	
 	<style>
+		
+		
+		:root{
+		    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+		    line-height: 1.5;
+		    font-weight: 400;
+		    color: #213547;
+		    background-color: #fff;
+		    font-synthesis: none;
+		    text-rendering: optimizeLegibility;
+		    -webkit-font-smoothing: antialiased;
+		    -moz-osx-font-smoothing: grayscale;
+		    -webkit-text-size-adjust: 100%;
+		}
+		
+		*{
+			box-sizing:border-box;
+		}
+		
 		body{
-			background-color:#85ca85;
+			font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+			background-color: rgb(243 244 246);
 			padding:2rem;
 			display:flex;
 			align-items:center;
 			justify-content:center;
+			height:100vh;
+			width:100vw;
+			
+		}
+		
+		
+		h1{
+			color: rgb(31,41,55);
+			font-weight: 600;
+			text-align: center;
+		}
+		
+		h2{
+			font-weight:500;
+		    font-size: 1rem;
+		    line-height: 1.5rem;
+			text-align: center;
+		}
+		
+		label{
+		    font-size: .875rem;
+		    line-height: 1.25rem;
+		}
+		
+		textarea{
+			border: 1px solid rgb(209,213,219);
+			width:100%;
+			border-radius: .375rem;
+			resize: vertical;
+		    font-family: inherit;
+		    font-feature-settings: inherit;
+		    font-variation-settings: inherit;
+		    font-size: 100%;
+		    font-weight: inherit;
+		    line-height: inherit;
+		    color: inherit;
+		}
+		
+		#guidance-scale{
+			flex-grow:1;
 		}
 		
 		
 		#centered{
+			max-width: 36rem;
 			max-height:100vh;
+			padding: 2rem;
+			border-radius: .5rem;
 			overflow:auto;
-			max-width:600px;
+			background-color:white;
+		    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+		    --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+		    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+		    
 		}
 		
 		#downloading-model,
@@ -37,33 +104,48 @@
 			top:-.6rem;
 		}
 		#prompt{
-			width:300px;
+			width:100%;
 			height:100px;
 			padding:.5rem;
 			box-sizing:border-box;
 		}
 		
-		.flex{
-			display:flex;
+		.setting{
 			justify-content:space-between;
-			border-bottom:1px solid rgba(255,255,255,.3);
+			border-bottom:1px solid rgba(0, 0, 0, .1);
 			margin:.8rem 0;
 			padding:.3rem 0;
 			width:300px;
 		}
+		.flex{
+			display:flex;
+		}
+		.column{
+			flex-direction:column;
+		}
+		
 		
 		button{
-			padding:1rem;
-			border-radius:1rem;
+			padding:.5rem 1rem;
+			border-radius:.375rem;
 			cursor:pointer;
+			border:none;
+			background-color: rgb(59,130,246);
+			color:white;
+			font-size: 100%;
 		}
 		button:hover{
-			background-color:green;
-			color:white;
+			background-color: rgb(37,99,235);
 		}
 		
 		audio{
 			margin-top:1rem;
+		}
+		
+		.button-container{
+			width:100%;
+			padding:1rem;
+			text-align: center;
 		}
 		
 	</style>
@@ -71,37 +153,48 @@
   <body>
 	  
 	<div id="centered">
-  	  <h1>🎸 🎺 🥁 MusicGen 🎶 🎵 🎶 </h1>
-	  <h3>.. running completely in the browser! </h3>
-  	  <p>This AI will generate a 30 second music clip tailored to your wishes. It's 100% privacy friendly, as the AI runs on your own computer, and not 'in the cloud'.</p>
-  	  <p>After the AI model is downloaded to your computer, which may take a few minutes, generating the audio can easily take another few minutes. In other words: please be patient.<p>
+		<h1>🎸 🎺 🥁 MusicGen 🎶 🎵 🎶 </h1>
+    	<h2 class="text-base font-medium text-gray-700 mb-2 text-center">Made with <a href="https://huggingface.co/docs/transformers.js">🤗 Transformers.js</a></h2>
+      	<p>This AI will generate a 30 second music clip tailored to your wishes. It's 100% privacy friendly, as the AI runs completely on your own computer, and not 'in the cloud'.</p>
+      	<p>After the AI model is downloaded to your computer, which may take a few minutes, generating the audio can easily take another few minutes. In other words: please be patient.<p>
+		
+      	<p>You can find this demo <a href="https://github.com/flatsiedatsie/transformers_js_musicgen">on Github</a>.</p>
+	  	<br/>
+    	<label for="prompt" class="block text-sm font-medium text-gray-600">Prompt</label><br/>
+      	<textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
 	  
-  	  <p>You can find this demo <a href="https://github.com/flatsiedatsie/transformers_js_musicgen">on Github</a>. This is made possible by <a href="https://huggingface.co/docs/transformers.js/index" target="_blank">Transformers.js</a>.</p>
-	  
-  	  <textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
-	  
-	  <div class="flex"><span>Max New Tokens</span>
-    	  <input id="new-tokens" type="number" value="512"/>
-  	  </div>
+    	<div class="flex setting"><label>Max New Tokens</label>
+        	<input id="new-tokens" type="number" value="512"/>
+      	</div>
   	  	
-	  <div class="flex"><span>Do Sample</span>
-  	  	  <input id="do-sample" type="checkbox" checked/>
-      </div>
+    	<div class="flex setting"><label>Do Sample</label>
+      	  	<input id="do-sample" type="checkbox" checked/>
+        </div>
   	  	
-	  <div class="flex"><span>Guidance scale</span> 0
-  	  	  <input id="guidance-scale" type="range" min="0" max="20" step="1" value="3"/> 20
-      </div>
 	  
-  	  <button id="submit-button">MAKE THAT FUNKY MUSIC</button>
+    	<div class="flex column setting">
+    		<label>Guidance scale</label> 
+    		<div class="flex">
+    		    0 <input id="guidance-scale" type="range" min="0" max="20" step="1" value="3"/> 20
+    	  	</div>
+        </div>
+		
+		<br/>
+    	
+		<div class="button-container">
+      	  	<button id="submit-button">Generate</button>
+    	</div>
 	  
-  	  <div id="downloading-model">Downloading AI model...</div>
-  	  <progress id="progress-bar" aria-label="Content loading…"></progress>
+    	<div id="downloading-model">Downloading AI model...</div>
+    	<progress id="progress-bar" aria-label="Content loading…"></progress>
 	  
-  	  <div id="output-container"></div>
+    	<div id="output-container"></div>
     </div>
 	  
+	  
+	  
+	  
 	<script type="module">
-		
 		
 		import { AutoTokenizer, MusicgenForConditionalGeneration } from './js/transformers.js';
 

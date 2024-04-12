@@ -300,11 +300,21 @@
 			
 			// Load tokenizer and model
 			const tokenizer = await AutoTokenizer.from_pretrained('Xenova/musicgen-small');
-			const model = await MusicgenForConditionalGeneration.from_pretrained(
-				//'Xenova/musicgen-small', { dtype: 'fp32' }
-				//'Xenova/musicgen-small', { dtype: 'q8' } // <- in the future this option should be used
-				'Xenova/musicgen-small', { dtype: 'q8' , revision: 'refs/pr/9'}
-			);
+			
+			// The comments below are valid on 12 april 2024
+			const model = await MusicgenForConditionalGeneration.from_pretrained('Xenova/musicgen-small', {
+			    dtype: {
+			        text_encoder: 'q8', // or 'fp32'. Both seem to work well, but q8 provides 4x memory reduction.
+			        decoder_model_merged: 'q8', // IMPORTANT: otherwise, you'll get out-of-memory issues
+			        encodec_decode: 'fp32', // IMPORTANT: If not full-precision, quality won't be very good.
+			    },
+			    device: {
+			        text_encoder: 'webgpu', // much faster :)
+			        decoder_model_merged: 'wasm', // webgpu is slower at the moment due to inefficient buffer reuse. Will fix.
+			        encodec_decode: 'wasm', // webgpu is currently broken (known upstream bug in onnxruntime-web). Will be fixed soon.
+			    },
+			});
+			
 
 			// Prepare text input
 			const prompt = document.getElementById('prompt').value; //'80s pop track with bassy drums and synth';

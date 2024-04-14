@@ -71,7 +71,7 @@
 		    color: inherit;
 		}
 		
-		#guidance-scale{
+		input[type="range"]{
 			flex-grow:1;
 		}
 		
@@ -148,6 +148,19 @@
 			text-align: center;
 		}
 		
+		#download_container_el{
+			display:flex;
+			flex-direction:column;
+		}
+		#download_container_el progress{
+			width:100%;
+		}
+		#download_container_el:not(:empty):before{
+			content:"Downloading";
+			display:block;
+		}
+		
+		
 	</style>
   </head>
   <body>
@@ -163,14 +176,24 @@
     	<label for="prompt" class="block text-sm font-medium text-gray-600">Prompt</label><br/>
       	<textarea id="prompt">80s pop track with bassy drums and synth</textarea><br/>
 	  
-    	<div class="flex setting"><label>Max New Tokens</label>
-        	<input id="new-tokens" type="number" value="512"/>
+    	<div class="flex column setting">
+			<label>Duration</label>
+    		<div class="flex">
+    		    10 <input id="duration" type="range" min="10" max="30" step="1" value="30"/> 30
+    	  	</div>
       	</div>
   	  	
+		<!--
     	<div class="flex setting"><label>Do Sample</label>
       	  	<input id="do-sample" type="checkbox" checked/>
         </div>
-  	  	
+  	  	-->
+    	<div class="flex column setting">
+    		<label>Creativity</label> 
+    		<div class="flex">
+    		    0.1 <input id="temperature" type="range" min="0.1" max="2" step=".1" value="1"/> 2
+    	  	</div>
+        </div>
 	  
     	<div class="flex column setting">
     		<label>Guidance scale</label> 
@@ -185,8 +208,11 @@
       	  	<button id="submit-button">Generate</button>
     	</div>
 	  
-    	<div id="downloading-model">Downloading AI model...</div>
-    	<progress id="progress-bar" aria-label="Content loading…"></progress>
+	  	<div id="status"></div>
+		<div id="download-container"></div>
+    	<div id="downloading-model"></div>
+		
+    	<progress id="progress-bar" aria-label="Generating…"></progress>
 	  
     	<div id="output-container"></div>
     </div>
@@ -196,19 +222,23 @@
 	  
 	<script type="module">
 		
-		import { AutoTokenizer, MusicgenForConditionalGeneration } from './js/transformers.js';
-
+		//import { AutoTokenizer, MusicgenForConditionalGeneration } from './js/transformers.js';
+		import { AutoTokenizer, MusicgenForConditionalGeneration, BaseStreamer } from './js/transformers.js';
 
 		const downloading_model_el = document.getElementById('downloading-model');
+		const download_container_el = document.getElementById('download-container');
+		
 		const progress_bar_el = document.getElementById('progress-bar');
-		const new_tokens_el = document.getElementById('new-tokens');
+		const duration_el = document.getElementById('duration');
 		const do_sample_el = document.getElementById('do-sample');
+		const temperature_el = document.getElementById('temperature');
 		const guidance_scale_el = document.getElementById('guidance-scale');
 		const output_container_el = document.getElementById('output-container');
-
+		const status_el = document.getElementById('status');
 		
 		
 		// Hacky way of getting progress updates
+		/*
 		var logOfConsole = [];
 		console.warn = function() {
 		    logOfConsole.push({method: 'warn', arguments: arguments});
@@ -218,7 +248,12 @@
 			progress_bar_el.style.display = 'block';
 			downloading_model_el.style.display = 'none';
 		};
-
+		*/
+		
+		
+		
+		
+		
 
 		// Library for turning audio data array into a WAV file
 		function minFramesForTargetMS(targetDuration, frameSamples, sr = 16e3) {
@@ -280,12 +315,45 @@
 		
 		
 		
+		
+		
+		
+		
 		// Submit button
 		const submit_button = document.getElementById('submit-button');
 		submit_button.addEventListener('click', () => {
 			console.log("making that funky music");
 			make_funky_music();
 		});
+		
+		
+		function setStatusText(text){
+			console.log("in setStatusText. text: ", text);
+			status_el.textContent = text;
+		}
+		
+		function setProgress(progress){
+			console.log("in setProgress. Progress: ", progress);
+			progress_bar_el.style.display = 'block';
+			progress_bar_el.value = progress;
+		}
+		
+		
+		class CallbackStreamer extends BaseStreamer {
+		  constructor(callback_fn) {
+		    super();
+		    this.callback_fn = callback_fn;
+		  }
+
+		  put(value) {
+		    return this.callback_fn(value);
+		  }
+
+		  end() {
+		    return this.callback_fn();
+		  }
+		}
+		
 		
 		
 		
@@ -296,12 +364,13 @@
 			downloading_model_el.style.display = 'block';
 			
 			progress_bar_el.value = 0;
-			logOfConsole = [];
+			//logOfConsole = [];
 			
 			// Load tokenizer and model
 			const tokenizer = await AutoTokenizer.from_pretrained('Xenova/musicgen-small');
 			
 			// The comments below are valid on 12 april 2024
+			/*
 			const model = await MusicgenForConditionalGeneration.from_pretrained('Xenova/musicgen-small', {
 			    dtype: {
 			        text_encoder: 'q8', // or 'fp32'. Both seem to work well, but q8 provides 4x memory reduction.
@@ -314,31 +383,108 @@
 			        encodec_decode: 'wasm', // webgpu is currently broken (known upstream bug in onnxruntime-web). Will be fixed soon.
 			    },
 			});
+			*/
+			const model = await MusicgenForConditionalGeneration.from_pretrained('Xenova/musicgen-small', {
+		        progress_callback: (data) => {
+					console.log("progress_callback: data: ", data);
+		          	if (data.status !== 'progress') return;
+					//setLoadProgress(prev => ({ ...prev, [data.file]: data }))
+					setLoadProgress(data);
+		        },
+		        dtype: {
+		          text_encoder: 'q8',
+		          decoder_model_merged: 'q8',
+		          encodec_decode: 'fp32',
+		        },
+		        device: 'wasm',
+    		});
 			
-
+			function setLoadProgress(loadProgress){
+				console.log("in setLoadProgress. loadProgress: ", typeof loadProgress, loadProgress);
+				if(typeof loadProgress.file == 'string' && typeof loadProgress.progress == 'number'){
+					let download_progress_el_id = loadProgress.file.substr(loadProgress.file.indexOf('/'));
+					let download_progress_el = document.getElementById(download_progress_el_id);
+					if(download_progress_el == null){
+						download_progress_el = document.createElement('progress');
+						download_progress_el.setAttribute('id',download_progress_el_id);
+						download_container_el.appendChild(download_progress_el);
+					}
+					download_progress_el.value = loadProgress.progress/100;
+					if(loadProgress.progress == 100){
+						download_progress_el.remove();
+					}
+				}
+				/*
+				const items = Object.values(loadProgress);
+				
+				console.log("items: ", items);
+			    if (items.length !== 5) return; // 5 files to load
+			    let loaded = 0;
+			    let total = 0;
+			    for (const data of Object.values(loadProgress)) {
+					loaded += data.loaded;
+					total += data.total;
+			    }
+			    const progress = loaded / total;
+				console.log("progress: ", progress);
+			    setProgress(progress);
+			    setStatusText(progress === 1
+					? 'Ready!'
+			      	: `Loading model (${(progress * 100).toFixed()}% of 656MB)...`
+			    );
+				*/
+			}
+			
+			
+			const temperature = temperature_el.value;
+			
 			// Prepare text input
 			const prompt = document.getElementById('prompt').value; //'80s pop track with bassy drums and synth';
 			const inputs = tokenizer(prompt);
-
+			
+			const duration = duration_el.value;
+			const max_length = Math.min(
+				Math.max(Math.floor(duration * 50), 1) + 4,
+				model.generation_config.max_length ?? 1500,
+			);
+			
+			const streamer = new CallbackStreamer((value) => {
+				console.log("in streamer. value: ", value);
+				const percent = value === undefined ? 1 : value[0].length / max_length;
+				console.log("streamer: percent: ", percent);
+				setStatusText(`Generating (${(percent * 100).toFixed()}%)...`);
+				setProgress(percent * 100);
+			});
+			
 			let guidance_scale = guidance_scale_el.value;
-			if(guidance_scale == 0){guidance_scale = null}
+			if(guidance_scale == 0){guidance_scale = null} // default is 3. Null disables it. Greatly increases memory usage.
 
-			console.log("max new token: ", new_tokens_el.value);
-			console.log("do_sample: ", do_sample_el.checked);
-			console.log("guidance_scale: ", guidance_scale);
-
+			console.log("duration: ", duration);
+			console.log("max_length: ", max_length);
+			//console.log("do_sample: ", do_sample_el.checked);
+			console.log("temperature: ", temperature);
+			console.log("guidance_scale: ", guidance_scale); 
+			
 			// Generate audio
 			const audio_values = await model.generate({
-			  ...inputs,
-			  max_new_tokens: new_tokens_el.value,
-			  do_sample: do_sample_el.checked,
-			  guidance_scale: guidance_scale, // default is 3. Null disables it. Greatly increases memory usage.
+				// Inputs
+				...inputs,
+
+     		   // Generation parameters
+				max_length, // duration, as number of tokens. 10 seconds equals to approximatately 1500 tokens
+				guidance_scale,
+				temperature,
+
+				// Outputs
+				streamer,
 			});
 
 			console.log("audio_values: ", audio_values);
+			console.log("audio_values: ", audio_values.data);
 			console.log("audio_values.ort_tensor: ", audio_values.ort_tensor);
 			console.log("audio_values.ort_tensor.cpuData: ", audio_values.ort_tensor.cpuData);
 		
+			// turn array into a WAV file
 			let wav = encodeWAV(audio_values.ort_tensor.cpuData, 3, 32000, 1, 32); // The MusicGen model outputs at a samplerate of 32000, 1 channel (mono), 32 bit data,
 			let wav_blob = new Blob([wav], { type: 'audio/wav' });
 			
@@ -352,7 +498,7 @@
 			
 			/*
 			
-			// The code below instantly plays the music after it has been created
+			// The code below instantly plays the music after it has been created // At the moment it plays it at a wrong speed on my device, since audio is generated at 32000 framerate, and my audiodevice is 44000 framerate, so it sounds sped-up.
 			// Stereo
 			var channels = 1;
 
